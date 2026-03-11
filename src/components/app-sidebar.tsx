@@ -56,7 +56,7 @@ export function AppSidebar({ unreadNotifications = 0 }: AppSidebarProps) {
             </span>
           </div>
           <span className="text-base font-semibold text-sidebar-foreground">
-            CodeTV
+            Regions
           </span>
         </Link>
       </SidebarHeader>

@@ -9,7 +9,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { prisma } from "@/lib/db";
 
 export const metadata: Metadata = {
-  title: "CodeTV MVP",
+  title: "Regions",
   description: "Linear-style issue tracker MVP",
 };
 
@@ -66,7 +66,7 @@ export default async function RootLayout({
             ) : (
               <div className="flex min-h-svh items-center justify-center">
                 <div className="text-center">
-                  <h1 className="text-2xl font-semibold">CodeTV</h1>
+                  <h1 className="text-2xl font-semibold">Regions</h1>
                   <p className="mt-2 text-muted-foreground">
                     Linear-style issue tracker
                   </p>
