@@ -26,7 +26,7 @@ export default async function RootLayout({
             ) : (
               <Link
                 href="/sign-in"
-                className="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white"
+                className="block rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
               >
                 Sign in
               </Link>
