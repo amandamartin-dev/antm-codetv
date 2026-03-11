@@ -1,30 +1,18 @@
-import { Role } from "@prisma/client";
 import { DashboardCharts } from "@/components/dashboard-charts";
 import { PageShell } from "@/components/page-shell";
-import { projectAccessWhere } from "@/lib/access";
 import { requireAppUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
 export default async function DashboardPage() {
-  const user = await requireAppUser();
+  await requireAppUser();
 
+  // Show ALL projects and issues to everyone
   const projects = await prisma.project.findMany({
-    where: projectAccessWhere(user),
     select: {
       id: true,
       key: true,
       name: true,
       issues: {
-        where:
-          user.role === Role.ADMIN
-            ? {}
-            : {
-                OR: [
-                  { assigneeUserId: user.id },
-                  { team: { members: { some: { userId: user.id } } } },
-                  { project: { members: { some: { userId: user.id } } } },
-                ],
-              },
         select: {
           status: true,
         },
@@ -48,8 +36,8 @@ export default async function DashboardPage() {
     };
   });
 
+  // Show all notifications to everyone
   const notifications = await prisma.notification.findMany({
-    where: { userId: user.id },
     orderBy: { createdAt: "desc" },
     take: 8,
   });

@@ -1,23 +1,18 @@
 import { IssueStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
-import { issueAccessWhere, projectAccessWhere } from "@/lib/access";
-import { requireAppUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { handleRouteError } from "@/lib/route-errors";
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const user = await requireAppUser(request);
-
+    // Show all projects and issues to everyone
     const projects = await prisma.project.findMany({
-      where: projectAccessWhere(user),
       select: {
         id: true,
         key: true,
         name: true,
         status: true,
         issues: {
-          where: issueAccessWhere(user),
           select: {
             id: true,
             status: true,
@@ -49,8 +44,8 @@ export async function GET(request: Request) {
       };
     });
 
+    // Show all notifications to everyone
     const notifications = await prisma.notification.findMany({
-      where: { userId: user.id },
       orderBy: { createdAt: "desc" },
       take: 10,
       select: {

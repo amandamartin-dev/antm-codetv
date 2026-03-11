@@ -5,14 +5,11 @@ import { prisma } from "@/lib/db";
 import { parseBody } from "@/lib/http";
 import { handleRouteError } from "@/lib/route-errors";
 import { createTeamSchema } from "@/lib/validators";
-import { teamAccessWhere } from "@/lib/access";
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const user = await requireAppUser(request);
-
+    // Show all teams to everyone
     const teams = await prisma.team.findMany({
-      where: teamAccessWhere(user),
       include: {
         members: {
           include: {

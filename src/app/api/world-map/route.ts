@@ -1,6 +1,4 @@
 import { NextResponse } from "next/server";
-import { requireAppUser } from "@/lib/auth";
-import { projectAccessWhere } from "@/lib/access";
 import { prisma } from "@/lib/db";
 import { handleRouteError } from "@/lib/route-errors";
 import { ProjectStatus, IssueStatus, IssuePriority } from "@prisma/client";
@@ -118,13 +116,10 @@ function generateProjectPaths(projects: Array<{ id: string; x: number; y: number
   return paths;
 }
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const user = await requireAppUser(request);
-
-    // Fetch projects with access control
+    // Fetch ALL projects - no access control, everyone sees the same world map
     const projects = await prisma.project.findMany({
-      where: projectAccessWhere(user),
       include: {
         lead: {
           select: { id: true, name: true, email: true },

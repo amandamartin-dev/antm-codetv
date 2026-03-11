@@ -1,14 +1,13 @@
 import { ApiJsonForm } from "@/components/api-json-form";
 import { PageShell } from "@/components/page-shell";
 import { requireAppUser } from "@/lib/auth";
-import { teamAccessWhere } from "@/lib/access";
 import { prisma } from "@/lib/db";
 
 export default async function TeamsPage() {
   const user = await requireAppUser();
 
+  // Show ALL teams to everyone
   const teams = await prisma.team.findMany({
-    where: teamAccessWhere(user),
     include: {
       members: {
         include: {
