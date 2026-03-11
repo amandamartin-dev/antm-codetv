@@ -2,14 +2,6 @@
 
 This repository is doc-first and intended for agent execution.
 
-## Source-of-Truth Docs
-Read in this order:
-1. `MVP_AGENT_SPEC.md` (normative product + engineering contract)
-2. `MVP_AGENT_RUNBOOK.md` (build and execution workflow)
-3. `MVP_AGENT_CHECKLIST.md` (definition of done / release gates)
-
-If any conflict exists, `MVP_AGENT_SPEC.md` is the source of truth.
-
 ## Current Local Run State
 The project is currently set up for local development with a simple auth bypass enabled.
 
