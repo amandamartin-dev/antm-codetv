@@ -8,6 +8,7 @@ import {
   CircleDotIcon,
   FolderIcon,
   UsersIcon,
+  MapIcon,
   BellIcon,
 } from "lucide-react";
 
@@ -30,6 +31,7 @@ const navItems = [
   { href: "/issues", label: "Issues", icon: CircleDotIcon },
   { href: "/projects", label: "Projects", icon: FolderIcon },
   { href: "/teams", label: "Teams", icon: UsersIcon },
+  { href: "/map", label: "Map", icon: MapIcon },
 ];
 
 type AppSidebarProps = {
