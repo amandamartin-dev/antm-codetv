@@ -481,7 +481,13 @@ export default function WorldMap() {
   
   // Island dragging state
   const [draggingIsland, setDraggingIsland] = useState<string | null>(null);
-  const islandDragStart = useRef<{ mx: number; my: number; ix: number; iy: number } | null>(null);
+  const islandDragStart = useRef<{ 
+    mx: number; 
+    my: number; 
+    ix: number; 
+    iy: number;
+    issuePositions: { id: string; x: number; y: number }[];
+  } | null>(null);
 
   // Modal state
   const [projectModal, setProjectModal] = useState<{ project?: Project; position?: { x: number; y: number } } | null>(null);
@@ -533,20 +539,27 @@ export default function WorldMap() {
       return;
     }
     
-    // Handle island dragging
+    // Handle island dragging - move region AND its issues together
     if (draggingIsland && islandDragStart.current) {
       const pos = screenToSvg(e.clientX, e.clientY);
       const startPos = screenToSvg(islandDragStart.current.mx, islandDragStart.current.my);
       const dx = pos.x - startPos.x;
       const dy = pos.y - startPos.y;
       
-      const project = projects.find(p => p.id === draggingIsland);
-      if (project) {
-        updateProject(draggingIsland, {
-          x: islandDragStart.current.ix + dx,
-          y: islandDragStart.current.iy + dy,
+      // Update project position
+      updateProject(draggingIsland, {
+        x: islandDragStart.current.ix + dx,
+        y: islandDragStart.current.iy + dy,
+      });
+      
+      // Update all issues using their stored initial positions
+      islandDragStart.current.issuePositions.forEach(({ id, x, y }) => {
+        updateIssue(id, {
+          x: x + dx,
+          y: y + dy,
         });
-      }
+      });
+      
       return;
     }
     
@@ -565,7 +578,15 @@ export default function WorldMap() {
     if (project.status === "PLANNING" || project.status === "PAUSED") return;
     e.stopPropagation();
     setDraggingIsland(project.id);
-    islandDragStart.current = { mx: e.clientX, my: e.clientY, ix: project.x, iy: project.y };
+    // Store initial positions of project AND all its issues
+    const projectIssues = issues.filter(i => i.projectId === project.id);
+    islandDragStart.current = { 
+      mx: e.clientX, 
+      my: e.clientY, 
+      ix: project.x, 
+      iy: project.y,
+      issuePositions: projectIssues.map(i => ({ id: i.id, x: i.x, y: i.y })),
+    };
   };
 
   const handleMapClick = (e: React.MouseEvent) => {
