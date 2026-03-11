@@ -359,6 +359,114 @@ function MusicPlayer() {
   );
 }
 
+function TutorialButton({ onOpen }: { onOpen: () => void }) {
+  return (
+    <button
+      onClick={onOpen}
+      style={{
+        position: "absolute",
+        top: 16,
+        right: 180,
+        background: "rgba(0,0,0,0.75)",
+        border: "2px solid rgba(168,85,247,0.5)",
+        borderRadius: 8,
+        padding: "10px 14px",
+        backdropFilter: "blur(8px)",
+        fontFamily: "'Press Start 2P', monospace",
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        cursor: "pointer",
+        zIndex: 50,
+        transition: "all 0.2s",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = "rgba(168,85,247,0.8)";
+        e.currentTarget.style.background = "rgba(168,85,247,0.2)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = "rgba(168,85,247,0.5)";
+        e.currentTarget.style.background = "rgba(0,0,0,0.75)";
+      }}
+      title="Watch Tutorial"
+    >
+      <span style={{ fontSize: 14 }}>🎬</span>
+      <span style={{ fontSize: 7, color: "#a855f7", letterSpacing: "0.1em" }}>TUTORIAL</span>
+    </button>
+  );
+}
+
+function TutorialModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.9)",
+        backdropFilter: "blur(8px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1000,
+        fontFamily: "'Press Start 2P', monospace",
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          position: "relative",
+          maxWidth: "90vw",
+          maxHeight: "90vh",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          style={{
+            position: "absolute",
+            top: -40,
+            right: 0,
+            background: "rgba(255,255,255,0.1)",
+            border: "2px solid rgba(255,255,255,0.2)",
+            borderRadius: 6,
+            padding: "8px 16px",
+            color: "rgba(255,255,255,0.7)",
+            fontSize: 8,
+            cursor: "pointer",
+            fontFamily: "'Press Start 2P', monospace",
+            letterSpacing: "0.1em",
+          }}
+        >
+          ✕ CLOSE
+        </button>
+        <video
+          src="/sterling.mp4"
+          controls
+          autoPlay
+          style={{
+            maxWidth: "90vw",
+            maxHeight: "80vh",
+            borderRadius: 12,
+            border: "2px solid rgba(168,85,247,0.5)",
+            boxShadow: "0 0 40px rgba(168,85,247,0.3)",
+          }}
+        />
+        <div
+          style={{
+            textAlign: "center",
+            marginTop: 16,
+            fontSize: 10,
+            color: "#a855f7",
+            letterSpacing: "0.15em",
+          }}
+        >
+          🎮 WELCOME TO REGIONS 🎮
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DetailPanel({
   issue,
   projects,
@@ -492,6 +600,7 @@ export default function WorldMap() {
   // Modal state
   const [projectModal, setProjectModal] = useState<{ project?: Project; position?: { x: number; y: number } } | null>(null);
   const [issueModal, setIssueModal] = useState<{ issue?: Issue; project: Project } | null>(null);
+  const [showTutorial, setShowTutorial] = useState(false);
   
   // Placement mode for new regions
   const [placementMode, setPlacementMode] = useState(false);
@@ -798,11 +907,14 @@ export default function WorldMap() {
       </svg>
 
       <HUD issues={issues} />
+      <TutorialButton onOpen={() => setShowTutorial(true)} />
       <MusicPlayer />
 
       <div style={{ position: "absolute", bottom: 16, left: 16, fontSize: 7, color: "rgba(255,255,255,0.35)", letterSpacing: "0.1em", fontFamily: "'Press Start 2P', monospace" }}>
         DRAG TO MOVE · CLICK QUESTS · DOUBLE-CLICK TO ENTER · RIGHT-CLICK TO ADD QUEST
       </div>
+      
+      {showTutorial && <TutorialModal onClose={() => setShowTutorial(false)} />}
 
       {selected && (
         <DetailPanel
