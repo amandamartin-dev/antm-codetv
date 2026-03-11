@@ -38,7 +38,7 @@ describeIfDatabase("integration API flows", () => {
         data: {
           clerkUserId: secondUserClerkUserId,
           email: `${secondUserClerkUserId}@example.com`,
-          name: secondUserClerkUserId,
+          name: `gh-user-b-${runId}`.toLowerCase(),
         },
       }),
     ]);
@@ -345,7 +345,7 @@ describeIfDatabase("integration API flows", () => {
       },
     });
 
-    const commentBody = `mention test ${runId} @${secondUserClerkUserId} #${issue.key} ~${project.key}`;
+    const commentBody = `mention test ${runId} @gh-user-b-${runId} #${issue.key} ~${project.key}`;
 
     const commentRequest = new Request("http://localhost/api/issues/comment", {
       method: "POST",

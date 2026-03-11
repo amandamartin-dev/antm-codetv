@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { headers } from "next/headers";
 import { Role, User } from "@prisma/client";
 import { prisma } from "@/lib/db";
@@ -20,16 +20,29 @@ function canUseDevBypass() {
   return process.env.ALLOW_DEV_BYPASS_AUTH === "1" || process.env.NODE_ENV !== "production";
 }
 
-function deriveProfileFromClaims(clerkUserId: string, claims?: Record<string, unknown>) {
-  const claimEmail = claims?.email;
-  const claimName = claims?.full_name ?? claims?.name;
+function deriveProfileFromUser(
+  clerkUserId: string,
+  profile?: {
+    email?: string | null;
+    username?: string | null;
+    githubUsername?: string | null;
+    fullName?: string | null;
+  },
+) {
+  const claimEmail = profile?.email;
+  const claimUsername = profile?.username ?? profile?.githubUsername;
+  const claimName = profile?.fullName;
 
   const email =
     typeof claimEmail === "string" && claimEmail.length > 0
       ? claimEmail
       : `${clerkUserId}@local.test`;
   const name =
-    typeof claimName === "string" && claimName.length > 0 ? claimName : clerkUserId;
+    typeof claimUsername === "string" && claimUsername.length > 0
+      ? claimUsername
+      : typeof claimName === "string" && claimName.length > 0
+        ? claimName
+        : clerkUserId;
 
   return { email, name };
 }
@@ -44,8 +57,15 @@ export async function requireAppUser(request?: Request): Promise<User> {
     clerkUserId = session.userId;
 
     if (clerkUserId) {
-      const claims = session.sessionClaims as Record<string, unknown> | undefined;
-      const profile = deriveProfileFromClaims(clerkUserId, claims);
+      const backendUser = await currentUser();
+      const primaryEmail = backendUser?.primaryEmailAddress?.emailAddress;
+      const githubAccount = backendUser?.externalAccounts?.find((account) => account.provider === "oauth_github");
+      const profile = deriveProfileFromUser(clerkUserId, {
+        email: primaryEmail,
+        username: backendUser?.username,
+        githubUsername: githubAccount?.username,
+        fullName: backendUser?.fullName,
+      });
       email = profile.email;
       name = profile.name;
     }
@@ -89,6 +109,16 @@ export async function requireAppUser(request?: Request): Promise<User> {
   });
 
   if (existingUser) {
+    if ((email && existingUser.email !== email) || (name && existingUser.name !== name)) {
+      return prisma.user.update({
+        where: { id: existingUser.id },
+        data: {
+          email: email ?? existingUser.email,
+          name: name ?? existingUser.name,
+        },
+      });
+    }
+
     return existingUser;
   }
 
