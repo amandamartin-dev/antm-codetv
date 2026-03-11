@@ -8,7 +8,7 @@ export default defineConfig({
   use: {
     baseURL,
     extraHTTPHeaders: {
-      "x-dev-user-id": process.env.E2E_ADMIN_CLERK_USER_ID ?? "admin_clerk_user_id",
+      "x-dev-user-id": process.env.E2E_DEFAULT_CLERK_USER_ID ?? "local_user_clerk_id",
     },
   },
   webServer: process.env.E2E_BASE_URL

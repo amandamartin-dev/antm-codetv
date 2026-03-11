@@ -3,7 +3,6 @@ import {
   IssuePriority,
   IssueStatus,
   ProjectStatus,
-  Role,
 } from "@prisma/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { POST as createDependency } from "@/app/api/issues/[issueId]/dependencies/route";
@@ -20,34 +19,32 @@ const describeIfDatabase = hasDatabase ? describe : describe.skip;
 
 describeIfDatabase("integration API flows", () => {
   const runId = `it-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-  const adminClerkUserId = `admin-${runId}`;
-  const memberClerkUserId = `member-${runId}`;
+  const firstUserClerkUserId = `user-a-${runId}`;
+  const secondUserClerkUserId = `user-b-${runId}`;
 
-  let adminUserId = "";
-  let memberUserId = "";
+  let firstUserId = "";
+  let secondUserId = "";
 
   beforeAll(async () => {
-    const [admin, member] = await Promise.all([
+    const [firstUser, secondUser] = await Promise.all([
       prisma.user.create({
         data: {
-          clerkUserId: adminClerkUserId,
-          email: `${adminClerkUserId}@example.com`,
-          name: adminClerkUserId,
-          role: Role.ADMIN,
+          clerkUserId: firstUserClerkUserId,
+          email: `${firstUserClerkUserId}@example.com`,
+          name: firstUserClerkUserId,
         },
       }),
       prisma.user.create({
         data: {
-          clerkUserId: memberClerkUserId,
-          email: `${memberClerkUserId}@example.com`,
-          name: memberClerkUserId,
-          role: Role.MEMBER,
+          clerkUserId: secondUserClerkUserId,
+          email: `${secondUserClerkUserId}@example.com`,
+          name: secondUserClerkUserId,
         },
       }),
     ]);
 
-    adminUserId = admin.id;
-    memberUserId = member.id;
+    firstUserId = firstUser.id;
+    secondUserId = secondUser.id;
   });
 
   afterAll(async () => {
@@ -64,7 +61,7 @@ describeIfDatabase("integration API flows", () => {
 
     await prisma.notification.deleteMany({
       where: {
-        OR: [{ userId: adminUserId }, { userId: memberUserId }],
+        OR: [{ userId: firstUserId }, { userId: secondUserId }],
       },
     });
 
@@ -132,7 +129,7 @@ describeIfDatabase("integration API flows", () => {
 
     await prisma.projectMember.deleteMany({
       where: {
-        OR: [{ userId: adminUserId }, { userId: memberUserId }],
+        OR: [{ userId: firstUserId }, { userId: secondUserId }],
       },
     });
 
@@ -146,7 +143,7 @@ describeIfDatabase("integration API flows", () => {
 
     await prisma.teamMember.deleteMany({
       where: {
-        OR: [{ userId: adminUserId }, { userId: memberUserId }],
+        OR: [{ userId: firstUserId }, { userId: secondUserId }],
       },
     });
 
@@ -169,7 +166,7 @@ describeIfDatabase("integration API flows", () => {
     await prisma.user.deleteMany({
       where: {
         clerkUserId: {
-          in: [adminClerkUserId, memberClerkUserId],
+          in: [firstUserClerkUserId, secondUserClerkUserId],
         },
       },
     });
@@ -183,7 +180,7 @@ describeIfDatabase("integration API flows", () => {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        "x-dev-user-id": adminClerkUserId,
+        "x-dev-user-id": firstUserClerkUserId,
       },
       body: JSON.stringify({
         key: teamKey,
@@ -197,8 +194,8 @@ describeIfDatabase("integration API flows", () => {
 
     await prisma.teamMember.createMany({
       data: [
-        { teamId: teamPayload.data.id, userId: adminUserId },
-        { teamId: teamPayload.data.id, userId: memberUserId },
+        { teamId: teamPayload.data.id, userId: firstUserId },
+        { teamId: teamPayload.data.id, userId: secondUserId },
       ],
       skipDuplicates: true,
     });
@@ -207,15 +204,15 @@ describeIfDatabase("integration API flows", () => {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        "x-dev-user-id": adminClerkUserId,
+        "x-dev-user-id": firstUserClerkUserId,
       },
       body: JSON.stringify({
         key: projectKey,
         name: `Project ${runId}`,
         description: `Project for ${runId}`,
         status: ProjectStatus.ACTIVE,
-        leadUserId: adminUserId,
-        memberIds: [adminUserId, memberUserId],
+        leadUserId: firstUserId,
+        memberIds: [firstUserId, secondUserId],
       }),
     });
 
@@ -227,7 +224,7 @@ describeIfDatabase("integration API flows", () => {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        "x-dev-user-id": adminClerkUserId,
+        "x-dev-user-id": firstUserClerkUserId,
       },
       body: JSON.stringify({
         name: `label-${runId}`,
@@ -243,7 +240,7 @@ describeIfDatabase("integration API flows", () => {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        "x-dev-user-id": adminClerkUserId,
+        "x-dev-user-id": firstUserClerkUserId,
       },
       body: JSON.stringify({
         title: `Issue One ${runId}`,
@@ -252,7 +249,7 @@ describeIfDatabase("integration API flows", () => {
         priority: IssuePriority.HIGH,
         teamId: teamPayload.data.id,
         projectId: projectPayload.data.id,
-        assigneeUserId: memberUserId,
+        assigneeUserId: secondUserId,
         labelId: labelPayload.data.id,
       }),
     });
@@ -265,7 +262,7 @@ describeIfDatabase("integration API flows", () => {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        "x-dev-user-id": adminClerkUserId,
+        "x-dev-user-id": firstUserClerkUserId,
       },
       body: JSON.stringify({
         title: `Issue Two ${runId}`,
@@ -274,7 +271,7 @@ describeIfDatabase("integration API flows", () => {
         priority: IssuePriority.MEDIUM,
         teamId: teamPayload.data.id,
         projectId: projectPayload.data.id,
-        assigneeUserId: memberUserId,
+        assigneeUserId: secondUserId,
         labelId: labelPayload.data.id,
       }),
     });
@@ -287,7 +284,7 @@ describeIfDatabase("integration API flows", () => {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        "x-dev-user-id": adminClerkUserId,
+        "x-dev-user-id": firstUserClerkUserId,
       },
       body: JSON.stringify({
         blockedByIssueId: issueOnePayload.data.id,
@@ -313,7 +310,7 @@ describeIfDatabase("integration API flows", () => {
 
     const assignmentNotification = await prisma.notification.findFirst({
       where: {
-        userId: memberUserId,
+        userId: secondUserId,
         type: "ISSUE_ASSIGNED",
         linkUrl: `/issues/${issueOnePayload.data.key}`,
       },
@@ -348,13 +345,13 @@ describeIfDatabase("integration API flows", () => {
       },
     });
 
-    const commentBody = `mention test ${runId} @${memberClerkUserId} #${issue.key} ~${project.key}`;
+    const commentBody = `mention test ${runId} @${secondUserClerkUserId} #${issue.key} ~${project.key}`;
 
     const commentRequest = new Request("http://localhost/api/issues/comment", {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        "x-dev-user-id": adminClerkUserId,
+        "x-dev-user-id": firstUserClerkUserId,
       },
       body: JSON.stringify({
         body: commentBody,
@@ -380,7 +377,7 @@ describeIfDatabase("integration API flows", () => {
 
     const mentionNotification = await prisma.notification.findFirst({
       where: {
-        userId: memberUserId,
+        userId: secondUserId,
         type: "MENTION",
         linkUrl: `/issues/${issue.key}`,
       },

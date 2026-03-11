@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { Role } from "@prisma/client";
 import { assertProjectAccess } from "@/lib/access";
 import { requireAppUser, resolveUserId } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -19,7 +18,7 @@ export async function GET(request: Request, { params }: { params: Params }) {
       where: { projectId },
       include: {
         user: {
-          select: { id: true, name: true, email: true, role: true },
+          select: { id: true, name: true, email: true },
         },
       },
       orderBy: { createdAt: "asc" },
@@ -35,10 +34,7 @@ export async function POST(request: Request, { params }: { params: Params }) {
   try {
     const { projectId } = await params;
     const user = await requireAppUser(request);
-
-    if (user.role !== Role.ADMIN) {
-      throw new Error("Admin access required");
-    }
+    await assertProjectAccess(user, projectId);
 
     const parsed = await parseBody(request, addMemberSchema);
     if (parsed.error) {
@@ -78,10 +74,7 @@ export async function DELETE(request: Request, { params }: { params: Params }) {
   try {
     const { projectId } = await params;
     const user = await requireAppUser(request);
-
-    if (user.role !== Role.ADMIN) {
-      throw new Error("Admin access required");
-    }
+    await assertProjectAccess(user, projectId);
 
     const parsed = await parseBody(request, addMemberSchema);
     if (parsed.error) {

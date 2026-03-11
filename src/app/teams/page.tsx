@@ -13,7 +13,7 @@ export default async function TeamsPage() {
       members: {
         include: {
           user: {
-            select: { id: true, name: true, email: true, role: true },
+            select: { id: true, name: true, email: true },
           },
         },
       },
@@ -50,7 +50,7 @@ export default async function TeamsPage() {
               </div>
               <ul className="mt-2 space-y-1 text-sm text-slate-700">
                 {team.members.map((member) => (
-                  <li key={member.id}>{member.user.name} ({member.user.role})</li>
+                  <li key={member.id}>{member.user.name}</li>
                 ))}
               </ul>
               <div className="mt-3">

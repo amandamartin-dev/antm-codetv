@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { Role } from "@prisma/client";
 import { assertProjectAccess } from "@/lib/access";
 import { requireAppUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -90,11 +89,7 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
 export async function DELETE(request: Request, { params }: { params: Params }) {
   try {
     const { projectId } = await params;
-    const user = await requireAppUser(request);
-
-    if (user.role !== Role.ADMIN) {
-      throw new Error("Admin access required");
-    }
+    await requireAppUser(request);
 
     await prisma.project.delete({ where: { id: projectId } });
 

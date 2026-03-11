@@ -72,7 +72,7 @@ export async function requireAppUser(request?: Request): Promise<User> {
 
   if (!clerkUserId && canUseDevBypass()) {
     const fallbackUserId =
-      process.env.DEV_DEFAULT_CLERK_USER_ID ?? process.env.SEED_ADMIN_CLERK_USER_ID;
+      process.env.DEV_DEFAULT_CLERK_USER_ID ?? process.env.SEED_DEFAULT_CLERK_USER_ID;
     if (fallbackUserId) {
       clerkUserId = fallbackUserId;
       email = `${fallbackUserId}@local.test`;
@@ -100,12 +100,6 @@ export async function requireAppUser(request?: Request): Promise<User> {
       role: Role.MEMBER,
     },
   });
-}
-
-export function assertAdmin(user: Pick<User, "role">) {
-  if (user.role !== Role.ADMIN) {
-    throw new Error("Admin access required");
-  }
 }
 
 export async function resolveUserId(args: {

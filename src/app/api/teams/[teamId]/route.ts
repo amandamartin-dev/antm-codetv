@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { Role } from "@prisma/client";
 import { requireAppUser } from "@/lib/auth";
 import { assertTeamAccess } from "@/lib/access";
 import { prisma } from "@/lib/db";
@@ -41,11 +40,7 @@ export async function GET(request: Request, { params }: { params: Params }) {
 export async function PATCH(request: Request, { params }: { params: Params }) {
   try {
     const { teamId } = await params;
-    const user = await requireAppUser(request);
-
-    if (user.role !== Role.ADMIN) {
-      throw new Error("Admin access required");
-    }
+    await requireAppUser(request);
 
     const parsed = await parseBody(request, updateTeamSchema);
     if (parsed.error) {
@@ -66,11 +61,7 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
 export async function DELETE(request: Request, { params }: { params: Params }) {
   try {
     const { teamId } = await params;
-    const user = await requireAppUser(request);
-
-    if (user.role !== Role.ADMIN) {
-      throw new Error("Admin access required");
-    }
+    await requireAppUser(request);
 
     await prisma.team.delete({ where: { id: teamId } });
 

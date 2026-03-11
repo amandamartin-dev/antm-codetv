@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { Role } from "@prisma/client";
 import { requireAppUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { handleRouteError } from "@/lib/route-errors";
@@ -9,7 +8,7 @@ type Params = Promise<{ projectKey: string }>;
 export async function GET(request: Request, { params }: { params: Params }) {
   try {
     const { projectKey } = await params;
-    const user = await requireAppUser(request);
+    await requireAppUser(request);
 
     const project = await prisma.project.findUnique({
       where: { key: projectKey.toUpperCase() },
@@ -51,14 +50,6 @@ export async function GET(request: Request, { params }: { params: Params }) {
 
     if (!project) {
       throw new Error("Project not found");
-    }
-
-    if (
-      user.role !== Role.ADMIN &&
-      project.leadUserId !== user.id &&
-      !project.members.some((member) => member.userId === user.id)
-    ) {
-      throw new Error("Forbidden");
     }
 
     return NextResponse.json({ data: project });
