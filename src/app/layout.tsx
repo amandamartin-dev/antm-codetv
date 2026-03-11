@@ -13,37 +13,18 @@ export const metadata: Metadata = {
   description: "Linear-style issue tracker MVP",
 };
 
-function canUseDevBypass() {
-  return (
-    process.env.ALLOW_DEV_BYPASS_AUTH === "1" ||
-    process.env.NODE_ENV !== "production"
-  );
-}
-
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   const session = await auth();
-
-  let isAuthenticated = !!session.userId;
-  let clerkUserId = session.userId;
-
-  if (!isAuthenticated && canUseDevBypass()) {
-    const fallbackUserId =
-      process.env.DEV_DEFAULT_CLERK_USER_ID ??
-      process.env.SEED_ADMIN_CLERK_USER_ID;
-    if (fallbackUserId) {
-      isAuthenticated = true;
-      clerkUserId = fallbackUserId;
-    }
-  }
+  const isAuthenticated = !!session.userId;
 
   let unreadNotifications = 0;
-  if (isAuthenticated && clerkUserId) {
+  if (session.userId) {
     const user = await prisma.user.findUnique({
-      where: { clerkUserId },
+      where: { clerkUserId: session.userId },
       select: { id: true },
     });
     if (user) {
