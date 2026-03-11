@@ -267,6 +267,98 @@ function HUD({ issues }: { issues: Issue[] }) {
   );
 }
 
+function MusicPlayer() {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [volume, setVolume] = useState(0.5);
+
+  const togglePlay = () => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play();
+    }
+    setIsPlaying(!isPlaying);
+  };
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVolume = parseFloat(e.target.value);
+    setVolume(newVolume);
+    if (audioRef.current) {
+      audioRef.current.volume = newVolume;
+    }
+  };
+
+  return (
+    <div style={{
+      position: "absolute",
+      top: 16,
+      right: 16,
+      background: "rgba(0,0,0,0.75)",
+      border: "2px solid rgba(255,255,255,0.15)",
+      borderRadius: 8,
+      padding: "10px 14px",
+      backdropFilter: "blur(8px)",
+      fontFamily: "'Press Start 2P', monospace",
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      zIndex: 50,
+    }}>
+      <audio
+        ref={audioRef}
+        src="/audio/Pixel Heart Checkpoint.mp3"
+        loop
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+      />
+      <button
+        onClick={togglePlay}
+        style={{
+          background: isPlaying ? "rgba(245,200,66,0.2)" : "rgba(255,255,255,0.1)",
+          border: `2px solid ${isPlaying ? "#f5c842" : "rgba(255,255,255,0.2)"}`,
+          borderRadius: 6,
+          width: 32,
+          height: 32,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          cursor: "pointer",
+          fontSize: 14,
+          transition: "all 0.2s",
+        }}
+        title={isPlaying ? "Pause Music" : "Play Music"}
+      >
+        {isPlaying ? "⏸" : "▶"}
+      </button>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <span style={{ fontSize: 6, color: "rgba(255,255,255,0.5)", letterSpacing: "0.1em" }}>
+          {isPlaying ? "NOW PLAYING" : "MUSIC"}
+        </span>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.1"
+          value={volume}
+          onChange={handleVolumeChange}
+          style={{
+            width: 60,
+            height: 4,
+            appearance: "none",
+            background: "rgba(255,255,255,0.2)",
+            borderRadius: 2,
+            cursor: "pointer",
+          }}
+          title="Volume"
+        />
+      </div>
+      <span style={{ fontSize: 12 }}>🎵</span>
+    </div>
+  );
+}
+
 function DetailPanel({
   issue,
   projects,
@@ -386,6 +478,10 @@ export default function WorldMap() {
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
   const dragStart = useRef<{ mx: number; my: number; px: number; py: number } | null>(null);
+  
+  // Island dragging state
+  const [draggingIsland, setDraggingIsland] = useState<string | null>(null);
+  const islandDragStart = useRef<{ mx: number; my: number; ix: number; iy: number } | null>(null);
 
   // Modal state
   const [projectModal, setProjectModal] = useState<{ project?: Project; position?: { x: number; y: number } } | null>(null);
@@ -423,6 +519,7 @@ export default function WorldMap() {
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (placementMode) return;
+    if (draggingIsland) return; // Don't start map drag if dragging an island
     if (e.target instanceof Element && (e.target.tagName === "svg" || e.target.tagName === "rect")) {
       dragStart.current = { mx: e.clientX, my: e.clientY, px: pan.x, py: pan.y };
       setDragging(true);
@@ -435,11 +532,41 @@ export default function WorldMap() {
       setGhostPosition({ x: pos.x - 100, y: pos.y - 75 });
       return;
     }
+    
+    // Handle island dragging
+    if (draggingIsland && islandDragStart.current) {
+      const pos = screenToSvg(e.clientX, e.clientY);
+      const startPos = screenToSvg(islandDragStart.current.mx, islandDragStart.current.my);
+      const dx = pos.x - startPos.x;
+      const dy = pos.y - startPos.y;
+      
+      const project = projects.find(p => p.id === draggingIsland);
+      if (project) {
+        updateProject(draggingIsland, {
+          x: islandDragStart.current.ix + dx,
+          y: islandDragStart.current.iy + dy,
+        });
+      }
+      return;
+    }
+    
     if (!dragging || !dragStart.current) return;
     setPan({ x: dragStart.current.px + (e.clientX - dragStart.current.mx), y: dragStart.current.py + (e.clientY - dragStart.current.my) });
   };
 
-  const handleMouseUp = () => setDragging(false);
+  const handleMouseUp = () => {
+    setDragging(false);
+    setDraggingIsland(null);
+    islandDragStart.current = null;
+  };
+  
+  // Handle island drag start
+  const handleIslandMouseDown = (e: React.MouseEvent, project: Project) => {
+    if (project.status === "PLANNING" || project.status === "PAUSED") return;
+    e.stopPropagation();
+    setDraggingIsland(project.id);
+    islandDragStart.current = { mx: e.clientX, my: e.clientY, ix: project.x, iy: project.y };
+  };
 
   const handleMapClick = (e: React.MouseEvent) => {
     if (!placementMode) return;
@@ -530,7 +657,7 @@ export default function WorldMap() {
   }
 
   return (
-    <div style={{ width: "100%", height: "100vh", background: "#5b9bd4", overflow: "hidden", position: "relative", cursor: dragging ? "grabbing" : "grab", fontFamily: "'Press Start 2P', monospace" }}>
+    <div style={{ width: "100%", height: "100vh", background: "#5b9bd4", overflow: "hidden", position: "relative", cursor: draggingIsland ? "grabbing" : dragging ? "grabbing" : "grab", fontFamily: "'Press Start 2P', monospace" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
         * { box-sizing: border-box; }
@@ -583,8 +710,15 @@ export default function WorldMap() {
           {projects.map(project => (
             <g 
               key={project.id} 
+              onMouseDown={(e) => handleIslandMouseDown(e, project)}
               onDoubleClick={() => handleEnterRegion(project)}
-              style={{ cursor: project.status === "PLANNING" || project.status === "PAUSED" ? "not-allowed" : "pointer" }}
+              style={{ 
+                cursor: project.status === "PLANNING" || project.status === "PAUSED" 
+                  ? "not-allowed" 
+                  : draggingIsland === project.id 
+                    ? "grabbing" 
+                    : "grab" 
+              }}
             >
               <TerrainShape project={project} />
               <ProjectLabel project={project} />
@@ -624,9 +758,10 @@ export default function WorldMap() {
       </svg>
 
       <HUD issues={issues} />
+      <MusicPlayer />
 
       <div style={{ position: "absolute", bottom: 16, left: 16, fontSize: 7, color: "rgba(255,255,255,0.35)", letterSpacing: "0.1em", fontFamily: "'Press Start 2P', monospace" }}>
-        DRAG TO EXPLORE · CLICK QUESTS · DOUBLE-CLICK ISLAND TO ENTER
+        DRAG ISLANDS TO MOVE · CLICK QUESTS · DOUBLE-CLICK ISLAND TO ENTER
       </div>
 
       {selected && (
