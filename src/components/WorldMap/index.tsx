@@ -876,6 +876,7 @@ export default function WorldMap() {
         <IssueModal
           issue={issueModal.issue}
           project={issueModal.project}
+          projects={projects}
           users={users}
           onSave={(data) => {
             if (issueModal.issue) {

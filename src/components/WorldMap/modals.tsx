@@ -294,13 +294,14 @@ export function ProjectModal({ project, users, existingProjects, initialPosition
 interface IssueModalProps {
   issue?: Issue;
   project: Project;
+  projects: Project[]; // All projects for the dropdown
   users: User[];
   onSave: (data: Omit<Issue, "id" | "key"> | Partial<Issue>) => void;
   onDelete?: () => void;
   onClose: () => void;
 }
 
-export function IssueModal({ issue, project, users, onSave, onDelete, onClose }: IssueModalProps) {
+export function IssueModal({ issue, project, projects, users, onSave, onDelete, onClose }: IssueModalProps) {
   const isEditing = !!issue;
   
   const [title, setTitle] = useState(issue?.title || "");
@@ -309,10 +310,24 @@ export function IssueModal({ issue, project, users, onSave, onDelete, onClose }:
   const [priority, setPriority] = useState<IssuePriority>(issue?.priority || "MEDIUM");
   const [size, setSize] = useState<"S" | "M" | "L">(issue?.size || "M");
   const [assigneeUserId, setAssigneeUserId] = useState(issue?.assigneeUserId || "");
+  const [selectedProjectId, setSelectedProjectId] = useState(issue?.projectId || project.id);
   
-  // Position - center of project region for new issues
-  const [x] = useState(issue?.x || project.x + project.w / 2);
-  const [y] = useState(issue?.y || project.y + project.h / 2);
+  // Get the selected project for positioning
+  const selectedProject = projects.find(p => p.id === selectedProjectId) || project;
+  
+  // Position - center of selected project region for new issues
+  const [x, setX] = useState(issue?.x || selectedProject.x + selectedProject.w / 2);
+  const [y, setY] = useState(issue?.y || selectedProject.y + selectedProject.h / 2);
+  
+  // Update position when project changes
+  const handleProjectChange = (newProjectId: string) => {
+    setSelectedProjectId(newProjectId);
+    const newProject = projects.find(p => p.id === newProjectId);
+    if (newProject && !isEditing) {
+      setX(newProject.x + newProject.w / 2);
+      setY(newProject.y + newProject.h / 2);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -325,7 +340,7 @@ export function IssueModal({ issue, project, users, onSave, onDelete, onClose }:
       priority,
       size,
       assigneeUserId: assigneeUserId || undefined,
-      projectId: project.id,
+      projectId: selectedProjectId,
       x,
       y,
     };
@@ -334,15 +349,27 @@ export function IssueModal({ issue, project, users, onSave, onDelete, onClose }:
     onClose();
   };
 
+  // Filter to only show active/unlocked projects
+  const availableProjects = projects.filter(p => p.status !== "PLANNING" && p.status !== "PAUSED");
+
   return (
     <div style={modalOverlayStyle} onClick={onClose}>
       <form style={modalStyle} onClick={e => e.stopPropagation()} onSubmit={handleSubmit}>
-        <div style={{ fontSize: 7, color: "rgba(255,255,255,0.4)", marginBottom: 4, letterSpacing: "0.1em" }}>
-          {project.name.toUpperCase()}
-        </div>
         <h2 style={{ fontSize: 10, color: "#fff", marginBottom: 20, letterSpacing: "0.1em" }}>
           {isEditing ? `EDIT ${issue.key}` : "NEW QUEST"}
         </h2>
+        
+        <label style={labelStyle}>REGION</label>
+        <select
+          style={selectStyle}
+          value={selectedProjectId}
+          onChange={e => handleProjectChange(e.target.value)}
+          disabled={isEditing}
+        >
+          {availableProjects.map(p => (
+            <option key={p.id} value={p.id}>{p.name}</option>
+          ))}
+        </select>
 
         <label style={labelStyle}>TITLE</label>
         <input
