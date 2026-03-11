@@ -1,5 +1,6 @@
 import { DashboardCharts } from "@/components/dashboard-charts";
 import { PageShell } from "@/components/page-shell";
+import { TutorialButton } from "@/components/tutorial-button";
 import { requireAppUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
@@ -44,6 +45,9 @@ export default async function DashboardPage() {
 
   return (
     <PageShell title="Dashboard" subtitle="Workspace progress and inbox">
+      <div className="mb-4 flex justify-end">
+        <TutorialButton />
+      </div>
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <DashboardCharts openVsCompleted={openVsCompleted} />
