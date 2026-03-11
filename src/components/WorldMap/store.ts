@@ -277,6 +277,15 @@ export const useWorldMapStore = create<ExtendedWorldMapStore>()(
         return newProject;
       },
 
+      // Local-only update (no API call) - used for dragging
+      updateProjectLocal: (id, data) => {
+        set((state) => ({
+          projects: state.projects.map((p) =>
+            p.id === id ? { ...p, ...data } : p
+          ),
+        }));
+      },
+
       updateProject: (id, data) => {
         // Optimistic update
         set((state) => ({
@@ -439,6 +448,15 @@ export const useWorldMapStore = create<ExtendedWorldMapStore>()(
         })();
         
         return newIssue;
+      },
+
+      // Local-only update (no API call) - used for dragging
+      updateIssueLocal: (id, data) => {
+        set((state) => ({
+          issues: state.issues.map((i) =>
+            i.id === id ? { ...i, ...data } : i
+          ),
+        }));
       },
 
       updateIssue: (id, data) => {

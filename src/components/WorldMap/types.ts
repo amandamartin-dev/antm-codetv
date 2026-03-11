@@ -66,11 +66,13 @@ export interface WorldMapActions {
   // Projects
   createProject: (data: Omit<Project, "id">) => Project;
   updateProject: (id: string, data: Partial<Project>) => void;
+  updateProjectLocal: (id: string, data: Partial<Project>) => void; // Local only, no API call
   deleteProject: (id: string) => void;
   
   // Issues
   createIssue: (data: Omit<Issue, "id" | "key">) => Issue;
   updateIssue: (id: string, data: Partial<Issue>) => void;
+  updateIssueLocal: (id: string, data: Partial<Issue>) => void; // Local only, no API call
   deleteIssue: (id: string) => void;
   
   // Dependencies

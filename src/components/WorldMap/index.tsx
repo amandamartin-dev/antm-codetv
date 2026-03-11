@@ -469,8 +469,8 @@ export default function WorldMap() {
   const { 
     users, projects, issues, dependencies, paths, 
     isLoading, error, fetchData,
-    createProject, updateProject, deleteProject, 
-    createIssue, updateIssue, deleteIssue 
+    createProject, updateProject, updateProjectLocal, deleteProject, 
+    createIssue, updateIssue, updateIssueLocal, deleteIssue 
   } = useWorldMapStore();
 
   const [selected, setSelected] = useState<Issue | null>(null);
@@ -546,15 +546,15 @@ export default function WorldMap() {
       const dx = pos.x - startPos.x;
       const dy = pos.y - startPos.y;
       
-      // Update project position
-      updateProject(draggingIsland, {
+      // Update project position locally (no API call during drag)
+      updateProjectLocal(draggingIsland, {
         x: islandDragStart.current.ix + dx,
         y: islandDragStart.current.iy + dy,
       });
       
-      // Update all issues using their stored initial positions
+      // Update all issues locally using their stored initial positions
       islandDragStart.current.issuePositions.forEach(({ id, x, y }) => {
-        updateIssue(id, {
+        updateIssueLocal(id, {
           x: x + dx,
           y: y + dy,
         });
@@ -568,6 +568,19 @@ export default function WorldMap() {
   };
 
   const handleMouseUp = () => {
+    // If we were dragging an island, sync final positions to the database
+    if (draggingIsland && islandDragStart.current) {
+      const project = projects.find(p => p.id === draggingIsland);
+      if (project) {
+        // Sync project position to DB (only if position changed)
+        if (project.x !== islandDragStart.current.ix || project.y !== islandDragStart.current.iy) {
+          updateProject(draggingIsland, { x: project.x, y: project.y });
+        }
+        
+        // Note: Issue positions are visual only (not stored in DB), so no need to sync
+      }
+    }
+    
     setDragging(false);
     setDraggingIsland(null);
     islandDragStart.current = null;
