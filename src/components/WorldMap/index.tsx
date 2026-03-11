@@ -295,7 +295,7 @@ function DetailPanel({
   const regionIssues = issues.filter(i => i.projectId === issue.projectId && i.id !== issue.id);
 
   return (
-    <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 320, background: "rgba(10,10,20,0.95)", borderLeft: "2px solid rgba(255,255,255,0.1)", backdropFilter: "blur(16px)", display: "flex", flexDirection: "column", overflowY: "auto", fontFamily: "'Press Start 2P', monospace" }}>
+    <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 320, background: "rgba(10,10,20,0.95)", borderLeft: "2px solid rgba(255,255,255,0.1)", backdropFilter: "blur(16px)", display: "flex", flexDirection: "column", overflowY: "auto", fontFamily: "'Press Start 2P', monospace", zIndex: 150 }}>
       <div style={{ padding: "20px 18px 16px", borderBottom: "1px solid rgba(255,255,255,0.08)", background: project ? `linear-gradient(135deg, ${project.color}33, transparent)` : "transparent" }}>
         <div style={{ fontSize: 7, color: "rgba(255,255,255,0.4)", letterSpacing: "0.15em", marginBottom: 8 }}>{project?.name.toUpperCase()}</div>
         <div style={{ fontSize: 11, color: "#fff", marginBottom: 14, lineHeight: 1.4 }}>{issue.title}</div>
