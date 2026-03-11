@@ -52,7 +52,7 @@ export function AppSidebar({ unreadNotifications = 0 }: AppSidebarProps) {
         <Link href="/" className="flex items-center gap-2">
           <div className="flex size-8 items-center justify-center rounded-lg bg-sidebar-accent">
             <span className="text-sm font-bold text-sidebar-accent-foreground">
-              CT
+              🗺️
             </span>
           </div>
           <span className="text-base font-semibold text-sidebar-foreground">
