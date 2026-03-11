@@ -746,6 +746,12 @@ export default function WorldMap() {
               key={project.id} 
               onMouseDown={(e) => handleIslandMouseDown(e, project)}
               onDoubleClick={() => handleEnterRegion(project)}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                if (project.status !== "PLANNING" && project.status !== "PAUSED") {
+                  setIssueModal({ project });
+                }
+              }}
               style={{ 
                 cursor: project.status === "PLANNING" || project.status === "PAUSED" 
                   ? "not-allowed" 
@@ -795,7 +801,7 @@ export default function WorldMap() {
       <MusicPlayer />
 
       <div style={{ position: "absolute", bottom: 16, left: 16, fontSize: 7, color: "rgba(255,255,255,0.35)", letterSpacing: "0.1em", fontFamily: "'Press Start 2P', monospace" }}>
-        DRAG ISLANDS TO MOVE · CLICK QUESTS · DOUBLE-CLICK ISLAND TO ENTER
+        DRAG TO MOVE · CLICK QUESTS · DOUBLE-CLICK TO ENTER · RIGHT-CLICK TO ADD QUEST
       </div>
 
       {selected && (
