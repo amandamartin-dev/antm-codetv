@@ -1,5 +1,7 @@
-import { ApiJsonForm } from "@/components/api-json-form";
+import { NotificationActions } from "@/components/forms";
 import { PageShell } from "@/components/page-shell";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { requireAppUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
@@ -17,44 +19,40 @@ export default async function NotificationsPage() {
 
   return (
     <PageShell title="Notifications" subtitle="In-app inbox only">
-      <div className="grid gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-1 space-y-4">
-          <ApiJsonForm
-            endpoint="/api/notifications"
-            method="PATCH"
-            title="Mark All Read"
-            submitLabel="Apply"
-            defaultPayload={JSON.stringify({ action: "all-read" }, null, 2)}
-          />
-          <ApiJsonForm
-            endpoint="/api/notifications"
-            method="PATCH"
-            title="Toggle One Notification"
-            submitLabel="Apply"
-            defaultPayload={JSON.stringify(
-              {
-                action: "read",
-                notificationId: notifications[0]?.id ?? "",
-              },
-              null,
-              2,
-            )}
-          />
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-1">
+          <NotificationActions notifications={notifications} />
         </div>
-        <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-600">Inbox</h2>
-          <ul className="mt-3 space-y-2">
-            {notifications.map((notification) => (
-              <li key={notification.id} className="rounded border border-slate-200 p-3 text-sm">
-                <p className="font-medium text-slate-900">{notification.title}</p>
-                <p className="text-slate-600">{notification.body}</p>
-                <p className="mt-1 text-xs text-slate-500">
-                  {notification.readAt ? "Read" : "Unread"} • {new Date(notification.createdAt).toLocaleString()}
-                </p>
-              </li>
-            ))}
-            {notifications.length === 0 ? <li className="text-sm text-slate-500">No notifications</li> : null}
-          </ul>
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Inbox</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="flex flex-col gap-2">
+                {notifications.map((notification) => (
+                  <li
+                    key={notification.id}
+                    className="flex flex-col gap-1 rounded-lg border p-3"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-medium">{notification.title}</p>
+                      <Badge variant={notification.readAt ? "secondary" : "default"}>
+                        {notification.readAt ? "Read" : "Unread"}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{notification.body}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(notification.createdAt).toLocaleString()}
+                    </p>
+                  </li>
+                ))}
+                {notifications.length === 0 && (
+                  <li className="text-sm text-muted-foreground">No notifications</li>
+                )}
+              </ul>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </PageShell>

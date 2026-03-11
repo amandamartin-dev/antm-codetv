@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ApiJsonForm } from "@/components/api-json-form";
+import { IssueForm, CommentForm, DependencyForm } from "@/components/forms";
 import { PageShell } from "@/components/page-shell";
-import { issueAccessWhere } from "@/lib/access";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { issueAccessWhere, projectAccessWhere, teamAccessWhere } from "@/lib/access";
 import { requireAppUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
@@ -12,44 +14,55 @@ export default async function IssueDetailPage({ params }: { params: Params }) {
   const { issueKey } = await params;
   const user = await requireAppUser();
 
-  const issue = await prisma.issue.findFirst({
-    where: {
-      key: issueKey.toUpperCase(),
-      AND: [issueAccessWhere(user)],
-    },
-    include: {
-      team: true,
-      project: true,
-      assignee: {
-        select: { id: true, name: true, email: true },
+  const [issue, teams, projects, labels, allIssues, users] = await Promise.all([
+    prisma.issue.findFirst({
+      where: {
+        key: issueKey.toUpperCase(),
+        AND: [issueAccessWhere(user)],
       },
-      label: true,
-      dependencies: {
-        include: {
-          blockedByIssue: {
-            select: { id: true, key: true, title: true, status: true },
+      include: {
+        team: true,
+        project: true,
+        assignee: {
+          select: { id: true, name: true, email: true },
+        },
+        label: true,
+        dependencies: {
+          include: {
+            blockedByIssue: {
+              select: { id: true, key: true, title: true, status: true },
+            },
+          },
+        },
+        blockedBy: {
+          include: {
+            issue: {
+              select: { id: true, key: true, title: true, status: true },
+            },
+          },
+        },
+        comments: {
+          include: {
+            author: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+          orderBy: {
+            createdAt: "desc",
           },
         },
       },
-      blockedBy: {
-        include: {
-          issue: {
-            select: { id: true, key: true, title: true, status: true },
-          },
-        },
-      },
-      comments: {
-        include: {
-          author: {
-            select: { id: true, name: true, email: true },
-          },
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-      },
-    },
-  });
+    }),
+    prisma.team.findMany({ where: teamAccessWhere(user), orderBy: { key: "asc" } }),
+    prisma.project.findMany({ where: projectAccessWhere(user), orderBy: { key: "asc" } }),
+    prisma.label.findMany({ orderBy: { name: "asc" } }),
+    prisma.issue.findMany({
+      where: issueAccessWhere(user),
+      select: { id: true, key: true, title: true },
+      orderBy: { key: "asc" },
+    }),
+    prisma.user.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
+  ]);
 
   if (!issue) {
     notFound();
@@ -57,95 +70,132 @@ export default async function IssueDetailPage({ params }: { params: Params }) {
 
   return (
     <PageShell title={issue.key} subtitle={issue.title}>
-      <div className="grid gap-4 lg:grid-cols-3">
-        <div className="space-y-4 lg:col-span-1">
-          <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm">
-            <p><span className="font-semibold">Status:</span> {issue.status}</p>
-            <p><span className="font-semibold">Priority:</span> {issue.priority}</p>
-            <p><span className="font-semibold">Team:</span> {issue.team.key}</p>
-            <p>
-              <span className="font-semibold">Project:</span>{" "}
-              {issue.project ? <Link href={`/projects/${issue.project.key}`} className="underline">{issue.project.key}</Link> : "None"}
-            </p>
-            <p><span className="font-semibold">Assignee:</span> {issue.assignee?.name ?? "Unassigned"}</p>
-          </div>
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="flex flex-col gap-4 lg:col-span-1">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Details</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Status</span>
+                <Badge variant="secondary">{issue.status}</Badge>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Priority</span>
+                <Badge variant="outline">{issue.priority}</Badge>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Team</span>
+                <span>{issue.team.key}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Project</span>
+                {issue.project ? (
+                  <Link href={`/projects/${issue.project.key}`} className="hover:underline">
+                    {issue.project.key}
+                  </Link>
+                ) : (
+                  <span className="text-muted-foreground">None</span>
+                )}
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Assignee</span>
+                <span>{issue.assignee?.name ?? "Unassigned"}</span>
+              </div>
+              {issue.dueDate && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Due Date</span>
+                  <span>{new Date(issue.dueDate).toLocaleDateString()}</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-          <ApiJsonForm
-            endpoint={`/api/issues/${issue.id}`}
-            method="PATCH"
-            title="Update Issue"
-            submitLabel="Update"
-            defaultPayload={JSON.stringify(
-              {
-                title: issue.title,
-                description: issue.description,
-                status: issue.status,
-                priority: issue.priority,
-                dueDate: issue.dueDate ? issue.dueDate.toISOString() : null,
-                assigneeUserId: issue.assigneeUserId,
-                labelId: issue.labelId,
-                projectId: issue.projectId,
-                teamId: issue.teamId,
-              },
-              null,
-              2,
-            )}
+          <IssueForm
+            mode="edit"
+            issueId={issue.id}
+            teams={teams}
+            projects={projects}
+            labels={labels}
+            users={users}
+            defaultValues={{
+              title: issue.title,
+              description: issue.description ?? "",
+              status: issue.status,
+              priority: issue.priority,
+              dueDate: issue.dueDate?.toISOString() ?? null,
+              assigneeUserId: issue.assigneeUserId,
+              labelId: issue.labelId,
+              projectId: issue.projectId,
+              teamId: issue.teamId,
+            }}
           />
 
-          <ApiJsonForm
-            endpoint={`/api/issues/${issue.id}/dependencies`}
-            title="Add Dependency"
-            submitLabel="Add"
-            defaultPayload={JSON.stringify({ blockedByIssueId: issue.id }, null, 2)}
-          />
+          <DependencyForm issueId={issue.id} availableIssues={allIssues} />
 
-          <ApiJsonForm
-            endpoint={`/api/issues/${issue.id}/comments`}
-            title="Add Comment"
-            submitLabel="Comment"
-            defaultPayload={JSON.stringify(
-              {
-                body: "Reference #ENG-1 and ~CORE-PLATFORM and @user",
-              },
-              null,
-              2,
-            )}
-          />
+          <CommentForm endpoint={`/api/issues/${issue.id}/comments`} />
         </div>
 
-        <div className="space-y-4 lg:col-span-2">
-          <section className="rounded-xl border border-slate-200 bg-white p-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-600">Description</h2>
-            <p className="mt-2 text-sm text-slate-700 whitespace-pre-wrap">{issue.description || "No description"}</p>
-          </section>
+        <div className="flex flex-col gap-4 lg:col-span-2">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Description</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="whitespace-pre-wrap text-sm">
+                {issue.description || "No description"}
+              </p>
+            </CardContent>
+          </Card>
 
-          <section className="rounded-xl border border-slate-200 bg-white p-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-600">Blocked By</h2>
-            <ul className="mt-2 space-y-2 text-sm">
-              {issue.dependencies.map((edge) => (
-                <li key={edge.id} className="rounded border border-slate-200 p-2">
-                  <Link href={`/issues/${edge.blockedByIssue.key}`} className="font-medium underline">
-                    {edge.blockedByIssue.key}
-                  </Link>{" "}
-                  {edge.blockedByIssue.title}
-                </li>
-              ))}
-              {issue.dependencies.length === 0 ? <li className="text-slate-500">No blockers</li> : null}
-            </ul>
-          </section>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Blocked By</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="flex flex-col gap-2">
+                {issue.dependencies.map((edge) => (
+                  <li key={edge.id} className="rounded-lg border p-2 text-sm">
+                    <Link
+                      href={`/issues/${edge.blockedByIssue.key}`}
+                      className="font-medium hover:underline"
+                    >
+                      {edge.blockedByIssue.key}
+                    </Link>{" "}
+                    {edge.blockedByIssue.title}
+                    <Badge variant="secondary" className="ml-2">
+                      {edge.blockedByIssue.status}
+                    </Badge>
+                  </li>
+                ))}
+                {issue.dependencies.length === 0 && (
+                  <li className="text-sm text-muted-foreground">No blockers</li>
+                )}
+              </ul>
+            </CardContent>
+          </Card>
 
-          <section className="rounded-xl border border-slate-200 bg-white p-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-600">Comments</h2>
-            <ul className="mt-2 space-y-2 text-sm">
-              {issue.comments.map((comment) => (
-                <li key={comment.id} className="rounded border border-slate-200 p-2">
-                  <p className="font-medium text-slate-900">{comment.author.name}</p>
-                  <p className="whitespace-pre-wrap text-slate-700">{comment.body}</p>
-                </li>
-              ))}
-              {issue.comments.length === 0 ? <li className="text-slate-500">No comments</li> : null}
-            </ul>
-          </section>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Comments</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="flex flex-col gap-3">
+                {issue.comments.map((comment) => (
+                  <li key={comment.id} className="rounded-lg border p-3">
+                    <p className="text-sm font-medium">{comment.author.name}</p>
+                    <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">
+                      {comment.body}
+                    </p>
+                  </li>
+                ))}
+                {issue.comments.length === 0 && (
+                  <li className="text-sm text-muted-foreground">No comments</li>
+                )}
+              </ul>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </PageShell>

@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ApiJsonForm } from "@/components/api-json-form";
+import { ProjectForm, ReleaseForm, CommentForm } from "@/components/forms";
 import { PageShell } from "@/components/page-shell";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { projectAccessWhere } from "@/lib/access";
 import { requireAppUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -12,47 +14,50 @@ export default async function ProjectDetailPage({ params }: { params: Params }) 
   const { projectKey } = await params;
   const user = await requireAppUser();
 
-  const project = await prisma.project.findFirst({
-    where: {
-      key: projectKey.toUpperCase(),
-      AND: [projectAccessWhere(user)],
-    },
-    include: {
-      lead: {
-        select: { id: true, name: true, email: true },
+  const [project, users] = await Promise.all([
+    prisma.project.findFirst({
+      where: {
+        key: projectKey.toUpperCase(),
+        AND: [projectAccessWhere(user)],
       },
-      members: {
-        include: {
-          user: {
-            select: { id: true, name: true, email: true },
+      include: {
+        lead: {
+          select: { id: true, name: true, email: true },
+        },
+        members: {
+          include: {
+            user: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+        },
+        releases: {
+          orderBy: [{ startsAt: "asc" }, { createdAt: "asc" }],
+        },
+        issues: {
+          include: {
+            assignee: {
+              select: { id: true, name: true },
+            },
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
+        comments: {
+          include: {
+            author: {
+              select: { id: true, name: true },
+            },
+          },
+          orderBy: {
+            createdAt: "desc",
           },
         },
       },
-      releases: {
-        orderBy: [{ startsAt: "asc" }, { createdAt: "asc" }],
-      },
-      issues: {
-        include: {
-          assignee: {
-            select: { id: true, name: true },
-          },
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-      },
-      comments: {
-        include: {
-          author: {
-            select: { id: true, name: true },
-          },
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-      },
-    },
-  });
+    }),
+    prisma.user.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
+  ]);
 
   if (!project) {
     notFound();
@@ -60,109 +65,133 @@ export default async function ProjectDetailPage({ params }: { params: Params }) 
 
   return (
     <PageShell title={project.key} subtitle={project.name}>
-      <div className="grid gap-4 lg:grid-cols-3">
-        <div className="space-y-4 lg:col-span-1">
-          <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm">
-            <p><span className="font-semibold">Status:</span> {project.status}</p>
-            <p><span className="font-semibold">Lead:</span> {project.lead?.name ?? "Unassigned"}</p>
-            <p><span className="font-semibold">Members:</span> {project.members.length}</p>
-            <p><span className="font-semibold">Issues:</span> {project.issues.length}</p>
-          </div>
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="flex flex-col gap-4 lg:col-span-1">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Details</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Status</span>
+                <Badge variant="secondary">{project.status}</Badge>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Lead</span>
+                <span>{project.lead?.name ?? "Unassigned"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Members</span>
+                <span>{project.members.length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Issues</span>
+                <span>{project.issues.length}</span>
+              </div>
+            </CardContent>
+          </Card>
 
-          <ApiJsonForm
-            endpoint={`/api/projects/${project.id}`}
-            method="PATCH"
-            title="Update Project"
-            submitLabel="Update"
-            defaultPayload={JSON.stringify(
-              {
-                name: project.name,
-                description: project.description,
-                status: project.status,
-                leadUserId: project.leadUserId,
-              },
-              null,
-              2,
-            )}
+          <ProjectForm
+            mode="edit"
+            projectId={project.id}
+            users={users}
+            currentUserId={user.id}
+            defaultValues={{
+              name: project.name,
+              description: project.description,
+              status: project.status,
+              leadUserId: project.leadUserId,
+            }}
           />
 
-          <ApiJsonForm
-            endpoint={`/api/projects/${project.id}/releases`}
-            title="Add Release"
-            submitLabel="Add"
-            defaultPayload={JSON.stringify(
-              {
-                name: "vNext",
-                startsAt: new Date().toISOString(),
-                endsAt: null,
-              },
-              null,
-              2,
-            )}
-          />
+          <ReleaseForm projectId={project.id} />
 
-          <ApiJsonForm
-            endpoint={`/api/projects/${project.id}/comments`}
-            title="Add Comment"
-            submitLabel="Comment"
-            defaultPayload={JSON.stringify(
-              {
-                body: "Mention @user and #ENG-1 in ~CORE-PLATFORM",
-              },
-              null,
-              2,
-            )}
-          />
+          <CommentForm endpoint={`/api/projects/${project.id}/comments`} />
         </div>
 
-        <div className="space-y-4 lg:col-span-2">
-          <section className="rounded-xl border border-slate-200 bg-white p-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-600">Description</h2>
-            <p className="mt-2 whitespace-pre-wrap text-sm text-slate-700">{project.description || "No description"}</p>
-          </section>
+        <div className="flex flex-col gap-4 lg:col-span-2">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Description</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="whitespace-pre-wrap text-sm">
+                {project.description || "No description"}
+              </p>
+            </CardContent>
+          </Card>
 
-          <section className="rounded-xl border border-slate-200 bg-white p-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-600">Releases</h2>
-            <ul className="mt-2 space-y-2 text-sm">
-              {project.releases.map((release) => (
-                <li key={release.id} className="rounded border border-slate-200 p-2">
-                  <p className="font-medium text-slate-900">{release.name}</p>
-                  <p className="text-slate-600">
-                    {release.startsAt ? new Date(release.startsAt).toLocaleDateString() : "No start"} -{" "}
-                    {release.endsAt ? new Date(release.endsAt).toLocaleDateString() : "No end"}
-                  </p>
-                </li>
-              ))}
-              {project.releases.length === 0 ? <li className="text-slate-500">No releases</li> : null}
-            </ul>
-          </section>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Releases</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="flex flex-col gap-2">
+                {project.releases.map((release) => (
+                  <li key={release.id} className="rounded-lg border p-3">
+                    <p className="font-medium">{release.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {release.startsAt
+                        ? new Date(release.startsAt).toLocaleDateString()
+                        : "No start"}{" "}
+                      -{" "}
+                      {release.endsAt
+                        ? new Date(release.endsAt).toLocaleDateString()
+                        : "No end"}
+                    </p>
+                  </li>
+                ))}
+                {project.releases.length === 0 && (
+                  <li className="text-sm text-muted-foreground">No releases</li>
+                )}
+              </ul>
+            </CardContent>
+          </Card>
 
-          <section className="rounded-xl border border-slate-200 bg-white p-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-600">Issues</h2>
-            <ul className="mt-2 space-y-2 text-sm">
-              {project.issues.map((issue) => (
-                <li key={issue.id} className="rounded border border-slate-200 p-2">
-                  <Link href={`/issues/${issue.key}`} className="font-medium underline">
-                    {issue.key}
-                  </Link>{" "}
-                  {issue.title}
-                </li>
-              ))}
-            </ul>
-          </section>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Issues</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="flex flex-col gap-2">
+                {project.issues.map((issue) => (
+                  <li key={issue.id} className="rounded-lg border p-2 text-sm">
+                    <Link
+                      href={`/issues/${issue.key}`}
+                      className="font-medium hover:underline"
+                    >
+                      {issue.key}
+                    </Link>{" "}
+                    {issue.title}
+                  </li>
+                ))}
+                {project.issues.length === 0 && (
+                  <li className="text-sm text-muted-foreground">No issues</li>
+                )}
+              </ul>
+            </CardContent>
+          </Card>
 
-          <section className="rounded-xl border border-slate-200 bg-white p-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-600">Comments</h2>
-            <ul className="mt-2 space-y-2 text-sm">
-              {project.comments.map((comment) => (
-                <li key={comment.id} className="rounded border border-slate-200 p-2">
-                  <p className="font-medium text-slate-900">{comment.author.name}</p>
-                  <p className="whitespace-pre-wrap text-slate-700">{comment.body}</p>
-                </li>
-              ))}
-              {project.comments.length === 0 ? <li className="text-slate-500">No comments</li> : null}
-            </ul>
-          </section>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Comments</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="flex flex-col gap-3">
+                {project.comments.map((comment) => (
+                  <li key={comment.id} className="rounded-lg border p-3">
+                    <p className="text-sm font-medium">{comment.author.name}</p>
+                    <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">
+                      {comment.body}
+                    </p>
+                  </li>
+                ))}
+                {project.comments.length === 0 && (
+                  <li className="text-sm text-muted-foreground">No comments</li>
+                )}
+              </ul>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </PageShell>
