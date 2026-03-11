@@ -267,6 +267,98 @@ function HUD({ issues }: { issues: Issue[] }) {
   );
 }
 
+function MusicPlayer() {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [volume, setVolume] = useState(0.5);
+
+  const togglePlay = () => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play();
+    }
+    setIsPlaying(!isPlaying);
+  };
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVolume = parseFloat(e.target.value);
+    setVolume(newVolume);
+    if (audioRef.current) {
+      audioRef.current.volume = newVolume;
+    }
+  };
+
+  return (
+    <div style={{
+      position: "absolute",
+      top: 16,
+      right: 16,
+      background: "rgba(0,0,0,0.75)",
+      border: "2px solid rgba(255,255,255,0.15)",
+      borderRadius: 8,
+      padding: "10px 14px",
+      backdropFilter: "blur(8px)",
+      fontFamily: "'Press Start 2P', monospace",
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      zIndex: 50,
+    }}>
+      <audio
+        ref={audioRef}
+        src="/audio/Pixel Heart Checkpoint.mp3"
+        loop
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+      />
+      <button
+        onClick={togglePlay}
+        style={{
+          background: isPlaying ? "rgba(245,200,66,0.2)" : "rgba(255,255,255,0.1)",
+          border: `2px solid ${isPlaying ? "#f5c842" : "rgba(255,255,255,0.2)"}`,
+          borderRadius: 6,
+          width: 32,
+          height: 32,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          cursor: "pointer",
+          fontSize: 14,
+          transition: "all 0.2s",
+        }}
+        title={isPlaying ? "Pause Music" : "Play Music"}
+      >
+        {isPlaying ? "⏸" : "▶"}
+      </button>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <span style={{ fontSize: 6, color: "rgba(255,255,255,0.5)", letterSpacing: "0.1em" }}>
+          {isPlaying ? "NOW PLAYING" : "MUSIC"}
+        </span>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.1"
+          value={volume}
+          onChange={handleVolumeChange}
+          style={{
+            width: 60,
+            height: 4,
+            appearance: "none",
+            background: "rgba(255,255,255,0.2)",
+            borderRadius: 2,
+            cursor: "pointer",
+          }}
+          title="Volume"
+        />
+      </div>
+      <span style={{ fontSize: 12 }}>🎵</span>
+    </div>
+  );
+}
+
 function DetailPanel({
   issue,
   projects,
@@ -666,6 +758,7 @@ export default function WorldMap() {
       </svg>
 
       <HUD issues={issues} />
+      <MusicPlayer />
 
       <div style={{ position: "absolute", bottom: 16, left: 16, fontSize: 7, color: "rgba(255,255,255,0.35)", letterSpacing: "0.1em", fontFamily: "'Press Start 2P', monospace" }}>
         DRAG ISLANDS TO MOVE · CLICK QUESTS · DOUBLE-CLICK ISLAND TO ENTER
