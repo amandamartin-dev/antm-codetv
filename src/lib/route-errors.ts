@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
+import { Prisma } from "@prisma/client";
 import { AuthError } from "@/lib/auth";
 import { AuthorizationError } from "@/lib/access";
 import { MentionResolutionError } from "@/lib/mentions";
@@ -25,6 +26,26 @@ export function handleRouteError(error: unknown) {
       },
       { status: 400 },
     );
+  }
+
+  // Handle Prisma unique constraint violations
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error.code === "P2002") {
+      // Unique constraint violation
+      const target = error.meta?.target;
+      const field = Array.isArray(target) ? target[0] : target || "field";
+      return NextResponse.json(
+        { error: `A record with this ${field} already exists` },
+        { status: 409 }
+      );
+    }
+    if (error.code === "P2025") {
+      // Record not found
+      return NextResponse.json(
+        { error: "Record not found" },
+        { status: 404 }
+      );
+    }
   }
 
   if (error instanceof Error && error.message.toLowerCase().includes("not found")) {

@@ -386,6 +386,10 @@ export default function WorldMap() {
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
   const dragStart = useRef<{ mx: number; my: number; px: number; py: number } | null>(null);
+  
+  // Island dragging state
+  const [draggingIsland, setDraggingIsland] = useState<string | null>(null);
+  const islandDragStart = useRef<{ mx: number; my: number; ix: number; iy: number } | null>(null);
 
   // Modal state
   const [projectModal, setProjectModal] = useState<{ project?: Project; position?: { x: number; y: number } } | null>(null);
@@ -423,6 +427,7 @@ export default function WorldMap() {
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (placementMode) return;
+    if (draggingIsland) return; // Don't start map drag if dragging an island
     if (e.target instanceof Element && (e.target.tagName === "svg" || e.target.tagName === "rect")) {
       dragStart.current = { mx: e.clientX, my: e.clientY, px: pan.x, py: pan.y };
       setDragging(true);
@@ -435,11 +440,41 @@ export default function WorldMap() {
       setGhostPosition({ x: pos.x - 100, y: pos.y - 75 });
       return;
     }
+    
+    // Handle island dragging
+    if (draggingIsland && islandDragStart.current) {
+      const pos = screenToSvg(e.clientX, e.clientY);
+      const startPos = screenToSvg(islandDragStart.current.mx, islandDragStart.current.my);
+      const dx = pos.x - startPos.x;
+      const dy = pos.y - startPos.y;
+      
+      const project = projects.find(p => p.id === draggingIsland);
+      if (project) {
+        updateProject(draggingIsland, {
+          x: islandDragStart.current.ix + dx,
+          y: islandDragStart.current.iy + dy,
+        });
+      }
+      return;
+    }
+    
     if (!dragging || !dragStart.current) return;
     setPan({ x: dragStart.current.px + (e.clientX - dragStart.current.mx), y: dragStart.current.py + (e.clientY - dragStart.current.my) });
   };
 
-  const handleMouseUp = () => setDragging(false);
+  const handleMouseUp = () => {
+    setDragging(false);
+    setDraggingIsland(null);
+    islandDragStart.current = null;
+  };
+  
+  // Handle island drag start
+  const handleIslandMouseDown = (e: React.MouseEvent, project: Project) => {
+    if (project.status === "PLANNING" || project.status === "PAUSED") return;
+    e.stopPropagation();
+    setDraggingIsland(project.id);
+    islandDragStart.current = { mx: e.clientX, my: e.clientY, ix: project.x, iy: project.y };
+  };
 
   const handleMapClick = (e: React.MouseEvent) => {
     if (!placementMode) return;
@@ -530,7 +565,7 @@ export default function WorldMap() {
   }
 
   return (
-    <div style={{ width: "100%", height: "100vh", background: "#5b9bd4", overflow: "hidden", position: "relative", cursor: dragging ? "grabbing" : "grab", fontFamily: "'Press Start 2P', monospace" }}>
+    <div style={{ width: "100%", height: "100vh", background: "#5b9bd4", overflow: "hidden", position: "relative", cursor: draggingIsland ? "grabbing" : dragging ? "grabbing" : "grab", fontFamily: "'Press Start 2P', monospace" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
         * { box-sizing: border-box; }
@@ -583,8 +618,15 @@ export default function WorldMap() {
           {projects.map(project => (
             <g 
               key={project.id} 
+              onMouseDown={(e) => handleIslandMouseDown(e, project)}
               onDoubleClick={() => handleEnterRegion(project)}
-              style={{ cursor: project.status === "PLANNING" || project.status === "PAUSED" ? "not-allowed" : "pointer" }}
+              style={{ 
+                cursor: project.status === "PLANNING" || project.status === "PAUSED" 
+                  ? "not-allowed" 
+                  : draggingIsland === project.id 
+                    ? "grabbing" 
+                    : "grab" 
+              }}
             >
               <TerrainShape project={project} />
               <ProjectLabel project={project} />
@@ -626,7 +668,7 @@ export default function WorldMap() {
       <HUD issues={issues} />
 
       <div style={{ position: "absolute", bottom: 16, left: 16, fontSize: 7, color: "rgba(255,255,255,0.35)", letterSpacing: "0.1em", fontFamily: "'Press Start 2P', monospace" }}>
-        DRAG TO EXPLORE · CLICK QUESTS · DOUBLE-CLICK ISLAND TO ENTER
+        DRAG ISLANDS TO MOVE · CLICK QUESTS · DOUBLE-CLICK ISLAND TO ENTER
       </div>
 
       {selected && (
