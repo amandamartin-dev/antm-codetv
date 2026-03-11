@@ -14,10 +14,7 @@ export const metadata: Metadata = {
 };
 
 function canUseDevBypass() {
-  return (
-    process.env.ALLOW_DEV_BYPASS_AUTH === "1" ||
-    process.env.NODE_ENV !== "production"
-  );
+  return process.env.ALLOW_DEV_BYPASS_AUTH === "1" || process.env.NODE_ENV === "test";
 }
 
 export default async function RootLayout({

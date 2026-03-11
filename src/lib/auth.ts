@@ -17,7 +17,7 @@ export function isClerkConfigured() {
 }
 
 function canUseDevBypass() {
-  return process.env.ALLOW_DEV_BYPASS_AUTH === "1" || process.env.NODE_ENV !== "production";
+  return process.env.ALLOW_DEV_BYPASS_AUTH === "1" || process.env.NODE_ENV === "test";
 }
 
 function deriveProfileFromUser(
