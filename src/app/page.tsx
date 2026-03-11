@@ -1,4 +1,3 @@
-import { Role } from "@prisma/client";
 import { DashboardCharts } from "@/components/dashboard-charts";
 import { PageShell } from "@/components/page-shell";
 import { projectAccessWhere } from "@/lib/access";
@@ -15,16 +14,7 @@ export default async function DashboardPage() {
       key: true,
       name: true,
       issues: {
-        where:
-          user.role === Role.ADMIN
-            ? {}
-            : {
-                OR: [
-                  { assigneeUserId: user.id },
-                  { team: { members: { some: { userId: user.id } } } },
-                  { project: { members: { some: { userId: user.id } } } },
-                ],
-              },
+        where: {},
         select: {
           status: true,
         },

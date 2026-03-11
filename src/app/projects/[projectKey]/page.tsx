@@ -107,7 +107,7 @@ export default async function ProjectDetailPage({ params }: { params: Params }) 
             submitLabel="Comment"
             defaultPayload={JSON.stringify(
               {
-                body: "Mention @admin and #ENG-1 in ~CORE-PLATFORM",
+                body: "Mention @user and #ENG-1 in ~CORE-PLATFORM",
               },
               null,
               2,

@@ -3,28 +3,25 @@ import {
   IssueStatus,
   PrismaClient,
   ProjectStatus,
-  Role,
 } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  const adminClerkUserId = process.env.SEED_ADMIN_CLERK_USER_ID ?? "admin_clerk_user_id";
-  const adminEmail = process.env.SEED_ADMIN_EMAIL ?? "admin@example.com";
-  const adminName = process.env.SEED_ADMIN_NAME ?? "Admin User";
+  const defaultClerkUserId = process.env.SEED_DEFAULT_CLERK_USER_ID ?? "local_user_clerk_id";
+  const defaultEmail = process.env.SEED_DEFAULT_EMAIL ?? "user@example.com";
+  const defaultName = process.env.SEED_DEFAULT_NAME ?? "Local User";
 
-  const admin = await prisma.user.upsert({
-    where: { clerkUserId: adminClerkUserId },
+  const defaultUser = await prisma.user.upsert({
+    where: { clerkUserId: defaultClerkUserId },
     create: {
-      clerkUserId: adminClerkUserId,
-      email: adminEmail,
-      name: adminName,
-      role: Role.ADMIN,
+      clerkUserId: defaultClerkUserId,
+      email: defaultEmail,
+      name: defaultName,
     },
     update: {
-      email: adminEmail,
-      name: adminName,
-      role: Role.ADMIN,
+      email: defaultEmail,
+      name: defaultName,
     },
   });
 
@@ -38,12 +35,12 @@ async function main() {
     where: {
       teamId_userId: {
         teamId: engTeam.id,
-        userId: admin.id,
+        userId: defaultUser.id,
       },
     },
     create: {
       teamId: engTeam.id,
-      userId: admin.id,
+      userId: defaultUser.id,
     },
     update: {},
   });
@@ -55,13 +52,13 @@ async function main() {
       name: "Core Platform",
       description: "Initial MVP project",
       status: ProjectStatus.ACTIVE,
-      leadUserId: admin.id,
+      leadUserId: defaultUser.id,
     },
     update: {
       name: "Core Platform",
       description: "Initial MVP project",
       status: ProjectStatus.ACTIVE,
-      leadUserId: admin.id,
+      leadUserId: defaultUser.id,
     },
   });
 
@@ -69,12 +66,12 @@ async function main() {
     where: {
       projectId_userId: {
         projectId: project.id,
-        userId: admin.id,
+        userId: defaultUser.id,
       },
     },
     create: {
       projectId: project.id,
-      userId: admin.id,
+      userId: defaultUser.id,
     },
     update: {},
   });
@@ -111,7 +108,7 @@ async function main() {
       priority: IssuePriority.HIGH,
       teamId: engTeam.id,
       projectId: project.id,
-      assigneeUserId: admin.id,
+      assigneeUserId: defaultUser.id,
       labelId: label.id,
     },
     update: {
@@ -121,7 +118,7 @@ async function main() {
       priority: IssuePriority.HIGH,
       teamId: engTeam.id,
       projectId: project.id,
-      assigneeUserId: admin.id,
+      assigneeUserId: defaultUser.id,
       labelId: label.id,
     },
   });
@@ -136,7 +133,7 @@ async function main() {
       priority: IssuePriority.MEDIUM,
       teamId: engTeam.id,
       projectId: project.id,
-      assigneeUserId: admin.id,
+      assigneeUserId: defaultUser.id,
       labelId: label.id,
     },
     update: {
@@ -146,7 +143,7 @@ async function main() {
       priority: IssuePriority.MEDIUM,
       teamId: engTeam.id,
       projectId: project.id,
-      assigneeUserId: admin.id,
+      assigneeUserId: defaultUser.id,
       labelId: label.id,
     },
   });
@@ -167,7 +164,7 @@ async function main() {
 
   await prisma.notification.create({
     data: {
-      userId: admin.id,
+      userId: defaultUser.id,
       type: "GENERIC",
       title: "Seed complete",
       body: `Release ${release.name} and sample issues are ready.`,

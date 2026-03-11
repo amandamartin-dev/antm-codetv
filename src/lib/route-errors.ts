@@ -31,10 +31,6 @@ export function handleRouteError(error: unknown) {
     return NextResponse.json({ error: error.message }, { status: 404 });
   }
 
-  if (error instanceof Error && error.message.toLowerCase().includes("admin")) {
-    return NextResponse.json({ error: error.message }, { status: 403 });
-  }
-
   if (error instanceof Error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }

@@ -105,7 +105,7 @@ export default async function IssueDetailPage({ params }: { params: Params }) {
             submitLabel="Comment"
             defaultPayload={JSON.stringify(
               {
-                body: "Reference #ENG-1 and ~CORE-PLATFORM and @admin",
+                body: "Reference #ENG-1 and ~CORE-PLATFORM and @user",
               },
               null,
               2,

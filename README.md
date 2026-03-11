@@ -8,10 +8,10 @@ The project is currently set up for local development with a simple auth bypass 
 - Database: Postgres via Docker
 - ORM: Prisma
 - Framework: Next.js App Router
-- Dev auth mode: bypass enabled with seeded admin user
+- Dev auth mode: bypass enabled with a seeded local user
 
 ### Dev Auth Bypass (Current Behavior)
-When `ALLOW_DEV_BYPASS_AUTH=1` (already set in `.env`), app routes do not require Clerk login in local dev. The app uses `DEV_DEFAULT_CLERK_USER_ID` (currently `admin_clerk_user_id`) as the local user.
+When `ALLOW_DEV_BYPASS_AUTH=1` (already set in `.env`), app routes do not require Clerk login in local dev. The app uses `DEV_DEFAULT_CLERK_USER_ID` as the local user.
 
 ## Prerequisites
 - Node.js `20+`
@@ -83,6 +83,6 @@ Notes:
 A local `.env` should include at least:
 - `DATABASE_URL`
 - `ALLOW_DEV_BYPASS_AUTH=1`
-- `DEV_DEFAULT_CLERK_USER_ID=admin_clerk_user_id`
+- `DEV_DEFAULT_CLERK_USER_ID=local_user_clerk_id`
 
 For full Clerk auth (without bypass), set valid Clerk keys and disable bypass.

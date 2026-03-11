@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { Role } from "@prisma/client";
 import { requireAppUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { parseBody } from "@/lib/http";
@@ -11,11 +10,7 @@ type Params = Promise<{ labelId: string }>;
 export async function PATCH(request: Request, { params }: { params: Params }) {
   try {
     const { labelId } = await params;
-    const user = await requireAppUser(request);
-
-    if (user.role !== Role.ADMIN) {
-      throw new Error("Admin access required");
-    }
+    await requireAppUser(request);
 
     const parsed = await parseBody(request, updateLabelSchema);
     if (parsed.error) {
@@ -36,11 +31,7 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
 export async function DELETE(request: Request, { params }: { params: Params }) {
   try {
     const { labelId } = await params;
-    const user = await requireAppUser(request);
-
-    if (user.role !== Role.ADMIN) {
-      throw new Error("Admin access required");
-    }
+    await requireAppUser(request);
 
     await prisma.label.delete({ where: { id: labelId } });
 

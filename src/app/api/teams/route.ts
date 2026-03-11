@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { Role } from "@prisma/client";
 import { requireAppUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { parseBody } from "@/lib/http";
@@ -37,11 +36,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const user = await requireAppUser(request);
-
-    if (user.role !== Role.ADMIN) {
-      throw new Error("Admin access required");
-    }
+    await requireAppUser(request);
 
     const parsed = await parseBody(request, createTeamSchema);
     if (parsed.error) {

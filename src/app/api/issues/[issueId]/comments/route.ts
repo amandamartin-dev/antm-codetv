@@ -1,4 +1,4 @@
-import { CommentType, Role } from "@prisma/client";
+import { CommentType } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { assertIssueAccess } from "@/lib/access";
 import { requireAppUser } from "@/lib/auth";
@@ -112,10 +112,6 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
       throw new Error("Comment not found");
     }
 
-    if (existing.authorUserId !== user.id && user.role !== Role.ADMIN) {
-      throw new Error("Only author or admin can edit comments");
-    }
-
     const updated = await prisma.issueComment.update({
       where: {
         id: parsed.data.commentId,
@@ -164,10 +160,6 @@ export async function DELETE(request: Request, { params }: { params: Params }) {
 
     if (!existing) {
       throw new Error("Comment not found");
-    }
-
-    if (existing.authorUserId !== user.id && user.role !== Role.ADMIN) {
-      throw new Error("Only author or admin can delete comments");
     }
 
     await prisma.$transaction(async (tx) => {

@@ -2,32 +2,32 @@ import { expect, request as playwrightRequest, test } from "@playwright/test";
 
 test.skip(process.env.RUN_E2E !== "1", "Set RUN_E2E=1 to execute E2E tests");
 
-test("admin creates core entities, member updates issue, dashboard reflects progress", async ({
+test("one user creates core entities, another user updates issue, dashboard reflects progress", async ({
   page,
   request,
 }) => {
   const runId = `e2e-${Date.now()}`;
   const teamKey = `E2E${runId.slice(-4).toUpperCase()}`;
   const projectKey = `E2E-${runId.slice(-4).toUpperCase()}`;
-  const memberClerkUserId = `member-${runId}`;
+  const secondUserClerkUserId = `user-b-${runId}`;
   const baseURL = process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000";
 
-  const adminMeResponse = await request.get("/api/me");
-  expect(adminMeResponse.ok()).toBeTruthy();
-  const adminMePayload = (await adminMeResponse.json()) as {
+  const firstUserMeResponse = await request.get("/api/me");
+  expect(firstUserMeResponse.ok()).toBeTruthy();
+  const firstUserMePayload = (await firstUserMeResponse.json()) as {
     data: { id: string; clerkUserId: string };
   };
 
-  const memberContext = await playwrightRequest.newContext({
+  const secondUserContext = await playwrightRequest.newContext({
     baseURL,
     extraHTTPHeaders: {
-      "x-dev-user-id": memberClerkUserId,
+      "x-dev-user-id": secondUserClerkUserId,
     },
   });
 
-  const memberMeResponse = await memberContext.get("/api/me");
-  expect(memberMeResponse.ok()).toBeTruthy();
-  const memberMePayload = (await memberMeResponse.json()) as { data: { id: string } };
+  const secondUserMeResponse = await secondUserContext.get("/api/me");
+  expect(secondUserMeResponse.ok()).toBeTruthy();
+  const secondUserMePayload = (await secondUserMeResponse.json()) as { data: { id: string } };
 
   const teamResponse = await request.post("/api/teams", {
     data: {
@@ -40,7 +40,7 @@ test("admin creates core entities, member updates issue, dashboard reflects prog
 
   await request.post(`/api/teams/${teamPayload.data.id}/members`, {
     data: {
-      clerkUserId: memberClerkUserId,
+      clerkUserId: secondUserClerkUserId,
     },
   });
 
@@ -50,8 +50,8 @@ test("admin creates core entities, member updates issue, dashboard reflects prog
       name: `Project ${runId}`,
       description: "e2e project",
       status: "ACTIVE",
-      leadUserId: adminMePayload.data.id,
-      memberIds: [adminMePayload.data.id, memberMePayload.data.id],
+      leadUserId: firstUserMePayload.data.id,
+      memberIds: [firstUserMePayload.data.id, secondUserMePayload.data.id],
     },
   });
   expect(projectResponse.ok()).toBeTruthy();
@@ -74,7 +74,7 @@ test("admin creates core entities, member updates issue, dashboard reflects prog
       priority: "HIGH",
       teamId: teamPayload.data.id,
       projectId: projectPayload.data.id,
-      assigneeClerkUserId: memberClerkUserId,
+      assigneeClerkUserId: secondUserClerkUserId,
       labelId: labelPayload.data.id,
     },
   });
@@ -83,19 +83,19 @@ test("admin creates core entities, member updates issue, dashboard reflects prog
     data: { id: string; key: string };
   };
 
-  const memberIssuePatch = await memberContext.patch(`/api/issues/${issuePayload.data.id}`, {
+  const secondUserIssuePatch = await secondUserContext.patch(`/api/issues/${issuePayload.data.id}`, {
     data: {
       status: "DONE",
     },
   });
-  expect(memberIssuePatch.ok()).toBeTruthy();
+  expect(secondUserIssuePatch.ok()).toBeTruthy();
 
-  const memberComment = await memberContext.post(`/api/issues/${issuePayload.data.id}/comments`, {
+  const secondUserComment = await secondUserContext.post(`/api/issues/${issuePayload.data.id}/comments`, {
     data: {
-      body: `@${adminMePayload.data.clerkUserId} #${issuePayload.data.key} ~${projectKey}`,
+      body: `@${firstUserMePayload.data.clerkUserId} #${issuePayload.data.key} ~${projectKey}`,
     },
   });
-  expect(memberComment.ok()).toBeTruthy();
+  expect(secondUserComment.ok()).toBeTruthy();
 
   const notificationResponse = await request.get("/api/notifications");
   const notificationPayload = (await notificationResponse.json()) as {
@@ -112,5 +112,5 @@ test("admin creates core entities, member updates issue, dashboard reflects prog
   await expect(page.getByText("Dashboard")).toBeVisible();
   await expect(page.getByText(projectKey)).toBeVisible();
 
-  await memberContext.dispose();
+  await secondUserContext.dispose();
 });
