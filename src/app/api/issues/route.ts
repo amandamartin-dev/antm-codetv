@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { IssueStatus, Prisma } from "@prisma/client";
-import { assertProjectAccess, assertTeamAccess, issueAccessWhere } from "@/lib/access";
+import { assertProjectAccess, assertTeamAccess } from "@/lib/access";
 import { requireAppUser, resolveUserId } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { generateIssueKey } from "@/lib/keys";
@@ -10,7 +10,6 @@ import { createIssueSchema } from "@/lib/validators";
 
 export async function GET(request: Request) {
   try {
-    const user = await requireAppUser(request);
     const url = new URL(request.url);
 
     const rawStatus = url.searchParams.get("status");
@@ -22,16 +21,12 @@ export async function GET(request: Request) {
     const projectId = url.searchParams.get("projectId");
     const assigneeUserId = url.searchParams.get("assigneeUserId");
 
+    // Show all issues to everyone
     const where: Prisma.IssueWhereInput = {
-      AND: [
-        issueAccessWhere(user),
-        {
-          status: status ?? undefined,
-          teamId: teamId ?? undefined,
-          projectId: projectId ?? undefined,
-          assigneeUserId: assigneeUserId ?? undefined,
-        },
-      ],
+      status: status ?? undefined,
+      teamId: teamId ?? undefined,
+      projectId: projectId ?? undefined,
+      assigneeUserId: assigneeUserId ?? undefined,
     };
 
     const issues = await prisma.issue.findMany({

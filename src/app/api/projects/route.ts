@@ -1,17 +1,14 @@
 import { NextResponse } from "next/server";
 import { requireAppUser } from "@/lib/auth";
-import { projectAccessWhere } from "@/lib/access";
 import { prisma } from "@/lib/db";
 import { parseBody } from "@/lib/http";
 import { handleRouteError } from "@/lib/route-errors";
 import { createProjectSchema } from "@/lib/validators";
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const user = await requireAppUser(request);
-
+    // Show all projects to everyone
     const projects = await prisma.project.findMany({
-      where: projectAccessWhere(user),
       include: {
         lead: {
           select: { id: true, name: true, email: true },

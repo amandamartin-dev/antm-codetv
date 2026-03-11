@@ -1,15 +1,14 @@
 import Link from "next/link";
 import { ApiJsonForm } from "@/components/api-json-form";
 import { PageShell } from "@/components/page-shell";
-import { projectAccessWhere } from "@/lib/access";
 import { requireAppUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
 export default async function ProjectsPage() {
   const user = await requireAppUser();
 
+  // Show ALL projects to everyone
   const projects = await prisma.project.findMany({
-    where: projectAccessWhere(user),
     include: {
       lead: {
         select: { id: true, name: true },

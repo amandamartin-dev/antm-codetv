@@ -1,16 +1,15 @@
 import Link from "next/link";
 import { ApiJsonForm } from "@/components/api-json-form";
 import { PageShell } from "@/components/page-shell";
-import { issueAccessWhere, projectAccessWhere, teamAccessWhere } from "@/lib/access";
 import { requireAppUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
 export default async function IssuesPage() {
   const user = await requireAppUser();
 
+  // Show ALL issues, teams, and projects to everyone
   const [issues, teams, projects, labels] = await Promise.all([
     prisma.issue.findMany({
-      where: issueAccessWhere(user),
       include: {
         team: {
           select: { id: true, key: true, name: true },
@@ -29,8 +28,8 @@ export default async function IssuesPage() {
         createdAt: "desc",
       },
     }),
-    prisma.team.findMany({ where: teamAccessWhere(user), orderBy: { key: "asc" } }),
-    prisma.project.findMany({ where: projectAccessWhere(user), orderBy: { key: "asc" } }),
+    prisma.team.findMany({ orderBy: { key: "asc" } }),
+    prisma.project.findMany({ orderBy: { key: "asc" } }),
     prisma.label.findMany({ orderBy: { name: "asc" } }),
   ]);
 

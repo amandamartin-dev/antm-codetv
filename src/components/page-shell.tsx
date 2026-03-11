@@ -12,6 +12,7 @@ const navItems = [
   { href: "/projects", label: "Projects" },
   { href: "/teams", label: "Teams" },
   { href: "/notifications", label: "Notifications" },
+  { href: "/map", label: "Map" },
 ];
 
 export function PageShell({ title, subtitle, children }: PageShellProps) {

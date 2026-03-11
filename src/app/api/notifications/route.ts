@@ -5,14 +5,10 @@ import { parseBody } from "@/lib/http";
 import { handleRouteError } from "@/lib/route-errors";
 import { notificationPatchSchema } from "@/lib/validators";
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const user = await requireAppUser(request);
-
+    // Show all notifications to everyone
     const notifications = await prisma.notification.findMany({
-      where: {
-        userId: user.id,
-      },
       orderBy: {
         createdAt: "desc",
       },
